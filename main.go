@@ -2,20 +2,20 @@ package main
 
 import (
 	"context"
+	"log"
+	"net/http"
 
-	"github.com/gin-gonic/gin"
 	"github.com/chromedp/chromedp"
 )
 
 func main() {
-	r := gin.Default()
-	r.GET("/", indexHandler)
-	r.GET("/api", apiHandler)
-	r.Run(":9090")
-}
-
-func indexHandler(c *gin.Context) {
-	c.JSON(200, gin.H{"status": "ok"})
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/" {
+			w.Write([]byte(`{"status": "ok"}`))
+		}
+	})
+	http.HandleFunc("/api", apiHandler)
+	http.ListenAndServe(":9090", nil)
 }
 
 var chromeOpts = []func(allocator *chromedp.ExecAllocator){
@@ -29,12 +29,16 @@ var chromeOpts = []func(allocator *chromedp.ExecAllocator){
 	chromedp.Headless,
 }
 
-func apiHandler(c *gin.Context) {
-	link := c.Query("url")
-	if link == "" {
-		c.JSON(400, gin.H{"status": "error", "message": "URL is required"})
+func apiHandler(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Path != "/api" {
 		return
 	}
+	link := r.URL.Query().Get("url")
+	if link == "" {
+		w.Write([]byte(`{"status": "error", "message": "URL is required"}`))
+		return
+	}
+	log.Printf("[INFO] Link: %s", link)
 
 	allocatorCtx, allocatorCancel := chromedp.NewExecAllocator(
 		context.Background(),
@@ -53,7 +57,8 @@ func apiHandler(c *gin.Context) {
 		chromedp.FullScreenshot(&buf, 90),
 	})
 
-	c.Writer.Header().Set("Cache-Control", "no-cache")
-	c.Writer.Header().Set("X-Page-Title", title)
-	c.Data(200, "image/jpeg", buf)
+	w.Header().Add("Content-Type", "image/jpeg")
+	w.Header().Add("Cache-Control", "no-cache")
+	w.Header().Add("X-Page-Title", title)
+	w.Write(buf)
 }
