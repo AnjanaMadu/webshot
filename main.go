@@ -66,11 +66,17 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 
 	var buf []byte
 	var title string
-	chromedp.Run(ctx, chromedp.Tasks{
+	err := chromedp.Run(ctx, chromedp.Tasks{
 		chromedp.Navigate(link),
 		chromedp.Title(&title),
 		chromedp.FullScreenshot(&buf, 90),
 	})
+
+	if err != nil {
+		err_ := `{"status": "error", "message": "` + err.Error() + `"}`
+		sendJSON(w, 500, err_)
+		return
+	}
 
 	w.Header().Add("Content-Type", "image/jpeg")
 	w.Header().Add("Cache-Control", "no-cache")
