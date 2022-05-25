@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/chromedp/chromedp"
 )
@@ -44,13 +45,13 @@ var chromeOpts = []func(allocator *chromedp.ExecAllocator){
 }
 
 func apiHandler(w http.ResponseWriter, r *http.Request) {
-	if r.URL.Path != "/api" {
-		return
-	}
 	link := r.URL.Query().Get("url")
 	if link == "" {
 		sendJSON(w, 400, `{"status": "error", "message": "URL is required"}`)
 		return
+	}
+	if !strings.HasPrefix(link, "http") {
+		link = "http://" + link
 	}
 	log.Printf("[INFO] Link: %s", link)
 
