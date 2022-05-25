@@ -14,17 +14,22 @@ func main() {
 		func(w http.ResponseWriter, r *http.Request) {
 			switch r.URL.Path {
 			case "/":
-				w.Write([]byte(`{"status": "ok"}`))
+				sendJSON(w, 200, `{"status": "ok", "message": "Welcome to screenshot API"}`)
 			case "/api":
 				apiHandler(w, r)
 			default:
-				w.WriteHeader(404)
-				w.Write([]byte(`{"status": "error", "message": "Not found"}`))
+				sendJSON(w, 404, `{"status": "error", "message": "Not found"}`)
 			}
 		},
 	)
 	log.Printf("[INFO] Listening on port 9090")
 	server.ListenAndServe()
+}
+
+func sendJSON(w http.ResponseWriter, status int, data string) {
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(status)
+	w.Write([]byte(data))
 }
 
 var chromeOpts = []func(allocator *chromedp.ExecAllocator){
@@ -44,7 +49,7 @@ func apiHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	link := r.URL.Query().Get("url")
 	if link == "" {
-		w.Write([]byte(`{"status": "error", "message": "URL is required"}`))
+		sendJSON(w, 400, `{"status": "error", "message": "URL is required"}`)
 		return
 	}
 	log.Printf("[INFO] Link: %s", link)
