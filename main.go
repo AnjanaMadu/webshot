@@ -9,14 +9,22 @@ import (
 )
 
 func main() {
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/" {
-			w.Write([]byte(`{"status": "ok"}`))
-		}
-	})
-	http.HandleFunc("/api", apiHandler)
+	server := http.Server{Addr: ":9090"}
+	server.Handler = http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			switch r.URL.Path {
+			case "/":
+				w.Write([]byte(`{"status": "ok"}`))
+			case "/api":
+				apiHandler(w, r)
+			default:
+				w.WriteHeader(404)
+				w.Write([]byte(`{"status": "error", "message": "Not found"}`))
+			}
+		},
+	)
 	log.Printf("[INFO] Listening on port 9090")
-	http.ListenAndServe(":9090", nil)
+	server.ListenAndServe()
 }
 
 var chromeOpts = []func(allocator *chromedp.ExecAllocator){
